@@ -163,4 +163,16 @@ class Transformer(nn.Module):
         out_decoder = self.Decoder((output_emb_pe, out_encoder))
         # final linear projection
         output = self.linear(out_decoder)
-        return torch.softmax(output, dim=-1)
+        return output
+    
+def maskedCrossEntropy(output: torch.Tensor, target: torch.LongTensor, padcar: int):
+    """
+    :param output: Tensor batch x length x output_dim,
+    :param target: Tensor batch x length
+    :param padcar: index of PAD character
+    """
+    sm_output = torch.log(torch.softmax(output, dim=-1)) # log softmax
+    masque_target = torch.where(target == padcar, 0., 1.).cuda()
+    index_target = target.unsqueeze(-1) # batch, leng, 1
+    loss = -torch.gather(sm_output, dim=-1, index=index_target).squeeze(-1)*masque_target
+    return torch.mean(loss)
