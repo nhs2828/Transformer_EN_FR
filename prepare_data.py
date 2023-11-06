@@ -17,7 +17,13 @@ def string2code(s, dictionary_word2id):
 def code2string(t, dictionary_id2word):
     if type(t) !=list:
         t = t.tolist()
-    return ' '.join(dictionary_id2word[i] for i in t)
+    res = []
+    for id_word in t:
+        word = dictionary_id2word[id_word]
+        res.append(word)
+        if word == '<eos>':
+            break
+    return ' '.join(res)
 
 class en_fr_dataset(Dataset):
     def __init__(self, en, fr, max_len, word2id_en, word2id_fr):

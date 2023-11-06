@@ -12,14 +12,14 @@ import numpy as np
 #     return result
 
 class PositionalEmbedding():
-    def __init__(self, max_len, emb_dim, device):
+    def __init__(self, max_len, emb_dim):
         assert emb_dim % 2 == 0
         pos = torch.arange(max_len).reshape(-1,1)
         i = torch.arange(emb_dim//2).reshape(1,-1)
         self.PE = torch.empty((max_len, emb_dim))
         self.PE[..., 0::2] = torch.sin(pos/torch.pow(10000, 2*i/emb_dim))
         self.PE[..., 1::2] = torch.cos(pos/torch.pow(10000, 2*i/emb_dim))
-        self.PE.to(device)
+        self.PE = self.PE.cuda()
 
     def embed(self, input):
         _, N, _ = input.size()
@@ -69,6 +69,7 @@ class MHA(nn.Module):
             mask = torch.ones((length,length))
             mask = torch.tril(mask)
             mask = torch.where(mask == 0, float('-inf'), 0.0)
+            mask = mask.cuda()
 
         attention = None
         for head_i in range(self.num_heads):
@@ -133,7 +134,7 @@ class DecodeBlock(nn.Module):
         return output
     
 class Transformer(nn.Module):
-    def __init__(self, vocab_size_in, vocab_size_out, emb_dim, hidden_ratio_encoder, hidden_ratio_decoder, num_heads, num_blocks,max_len, p_dropOut=0.5, device='cuda'):
+    def __init__(self, vocab_size_in, vocab_size_out, emb_dim, hidden_ratio_encoder, hidden_ratio_decoder, num_heads, num_blocks,max_len, p_dropOut=0.5):
         super().__init__()
         self.emb_dim = emb_dim
         encoderBlocks = []
@@ -145,7 +146,7 @@ class Transformer(nn.Module):
         self.Decoder = nn.Sequential(*decoderBlocks)
         self.EncoderEmb = nn.Embedding(num_embeddings=vocab_size_in,embedding_dim=emb_dim)
         self.DecoderEmb = nn.Embedding(num_embeddings=vocab_size_out,embedding_dim=emb_dim)
-        self.PE = PositionalEmbedding(max_len=max_len, emb_dim=emb_dim,device=device)
+        self.PE = PositionalEmbedding(max_len=max_len, emb_dim=emb_dim)
         self.linear = nn.Linear(in_features=emb_dim, out_features=vocab_size_out)
 
     def forward(self, inputs, outputs):
@@ -164,7 +165,7 @@ class Transformer(nn.Module):
         # final linear projection
         output = self.linear(out_decoder)
         return output
-    
+        
 def maskedCrossEntropy(output: torch.Tensor, target: torch.LongTensor, padcar: int):
     """
     :param output: Tensor batch x length x output_dim,
