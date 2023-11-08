@@ -132,7 +132,7 @@ class DecodeBlock(nn.Module):
         out_ff = self.MLP(in_ff)
         # Add & Norm
         output = self.norm_3(torch.add(in_ff, out_ff))
-        return (output_emb, output)
+        return (output, output_encoder)
     
 class Transformer(nn.Module):
     def __init__(self, vocab_size_in, vocab_size_out, emb_dim, hidden_ratio_encoder, hidden_ratio_decoder, num_heads, num_blocks,max_len, p_dropOut=0.5):
@@ -160,7 +160,7 @@ class Transformer(nn.Module):
         # encode
         out_encoder = self.Encoder(input_emb_pe)
         # decode
-        _, out_decoder = self.Decoder((output_emb_pe, out_encoder))
+        out_decoder, _ = self.Decoder((output_emb_pe, out_encoder))
         # final linear projection
         output = self.linear(out_decoder)
         return output
