@@ -98,6 +98,7 @@ class EncoderBlock(nn.Module):
 
     def forward(self, inputs):
         # MHA
+        print("encoder", inputs.shape)
         out_MHA = self.MHA(inputs, inputs, inputs)
         # Add & Norm
         input_ff = self.norm_1(torch.add(out_MHA, inputs))
@@ -131,7 +132,7 @@ class DecodeBlock(nn.Module):
         out_ff = self.MLP(in_ff)
         # Add & Norm
         output = self.norm_3(torch.add(in_ff, out_ff))
-        return output
+        return (output_emb, output)
     
 class Transformer(nn.Module):
     def __init__(self, vocab_size_in, vocab_size_out, emb_dim, hidden_ratio_encoder, hidden_ratio_decoder, num_heads, num_blocks,max_len, p_dropOut=0.5):
@@ -150,8 +151,6 @@ class Transformer(nn.Module):
         self.linear = nn.Linear(in_features=emb_dim, out_features=vocab_size_out)
 
     def forward(self, inputs, outputs):
-        # batch_size, seq_len_input = input.size()
-        # seq_len_output = output.size(1)
         # Embedding
         input_emb = self.EncoderEmb(inputs)
         output_emb = self.DecoderEmb(outputs)
@@ -161,7 +160,7 @@ class Transformer(nn.Module):
         # encode
         out_encoder = self.Encoder(input_emb_pe)
         # decode
-        out_decoder = self.Decoder((output_emb_pe, out_encoder))
+        _, out_decoder = self.Decoder((output_emb_pe, out_encoder))
         # final linear projection
         output = self.linear(out_decoder)
         return output
